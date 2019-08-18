@@ -76,23 +76,13 @@ ErrorGameNotRunning = Unable to locate the game. Please ensure GameWindowTitle i
 ; End of Config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-GetAdjustedCoordinate(Coordinate1, Coordinate2, Modifier) {
-	return (Coordinate1 + Coordinate2) / 2 * Modifier
+GetCoordinate(Coordinate1, Coordinate2, Modifier) {
+	Random, Coordinate, Coordinate1, Coordinate2
+	return Coordinate * Modifier
 }
 
 XModifier := WindowWidth / BaseWindowWidth
 YModifier := WindowHeight / BaseWindowHeight
-
-SingleEventX := GetAdjustedCoordinate(BaseSingleEventX1, BaseSingleEventX2, XModifier)
-SingleEventY := GetAdjustedCoordinate(BaseSingleEventY1, BaseSingleEventY2, YModifier)
-ChosenHorseX := GetAdjustedCoordinate(BaseFirstHorseX1, BaseFirstHorseX2, XModifier)
-ChosenHorseY := GetAdjustedCoordinate(BaseFirstHorseY1, BaseFirstHorseY2, YModifier) + (ChosenHorse - 1) * (BaseFirstHorseY2 - BaseFirstHorseY1)
-IncreaseBetX := GetAdjustedCoordinate(BaseIncreaseBetX1, BaseIncreaseBetX2, XModifier)
-IncreaseBetY := GetAdjustedCoordinate(BaseIncreaseBetY1, BaseIncreaseBetY2, YModifier)
-PlaceBetX := GetAdjustedCoordinate(BasePlaceBetX1, BasePlaceBetX2, XModifier)
-PlaceBetY := GetAdjustedCoordinate(BasePlaceBetY1, BasePlaceBetY2, YModifier)
-BetAgainX := GetAdjustedCoordinate(BaseBetAgainX1, BaseBetAgainX2, XModifier)
-BetAgainY := GetAdjustedCoordinate(BaseBetAgainY1, BaseBetAgainY2, YModifier)
 
 SetMouseDelay, %ClickDelay%
 Hotkey, %HotkeyStart%, RaceLoop
@@ -100,7 +90,7 @@ Hotkey, %HotkeyStop%, Stop
 Hotkey, %HotkeyDebugReload%, DebugReload
 Hotkey, %HotkeyAbort%, Abort
 
-if (ChosenHorse < 1 or ChosenHorse > 6) {
+If (ChosenHorse < 1 or ChosenHorse > 6) {
 	MsgBox, %ErrorInvalidHorse%
 	ExitApp
 }
@@ -108,24 +98,35 @@ if (ChosenHorse < 1 or ChosenHorse > 6) {
 return
 
 RaceLoop:
-continue = 1
-While (continue) {
-	if (WinExist(GameWindowTitle)) {
+Continue = 1
+While (Continue) {
+	If (WinExist(GameWindowTitle)) {
 		If (not WinActive(GameWindowTitle)) {
 			WinActivate
 		}
+		SingleEventX := GetCoordinate(BaseSingleEventX1, BaseSingleEventX2, XModifier)
+		SingleEventY := GetCoordinate(BaseSingleEventY1, BaseSingleEventY2, YModifier)
+		ChosenHorseX := GetCoordinate(BaseFirstHorseX1, BaseFirstHorseX2, XModifier)
+		ChosenHorseY := GetCoordinate(BaseFirstHorseY1, BaseFirstHorseY2, YModifier) + (ChosenHorse - 1) * (BaseFirstHorseY2 - BaseFirstHorseY1)
+		IncreaseBetX := GetCoordinate(BaseIncreaseBetX1, BaseIncreaseBetX2, XModifier)
+		IncreaseBetY := GetCoordinate(BaseIncreaseBetY1, BaseIncreaseBetY2, YModifier)
+		PlaceBetX := GetCoordinate(BasePlaceBetX1, BasePlaceBetX2, XModifier)
+		PlaceBetY := GetCoordinate(BasePlaceBetY1, BasePlaceBetY2, YModifier)
+		BetAgainX := GetCoordinate(BaseBetAgainX1, BaseBetAgainX2, XModifier)
+		BetAgainY := GetCoordinate(BaseBetAgainY1, BaseBetAgainY2, YModifier)
+
 		SendEvent {Click %SingleEventX%, %SingleEventY%}{Click %ChosenHorseX%, %ChosenHorseY%}{Click %IncreaseBetX%, %IncreaseBetY%, down}{Click %PlaceBetX%, %PlaceBetY%, 0}
 		Sleep, %RaceDelay%
 		SendEvent {Click up}{Click %BetAgainX%, %BetAgainY%}
-	} else {
+	} Else {
 		MsgBox, %ErrorGameNotRunning%
-		continue = 0
+		Continue = 0
 	}
 }
 return
 
 Stop:
-continue = 0
+Continue = 0
 return
 
 DebugReload:
