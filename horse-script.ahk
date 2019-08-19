@@ -29,14 +29,26 @@ WindowHeight = 1080
 ; I believe the first horse gives the highest rates.
 ChosenHorse = 1
 
+; Amount to be bet (0-26*)
+; 10 ($2000) or more supposedly prevents automated kicks.
+; If PlayLegit is enabled, the range goes to 27.
+BetAmount = 10
+
 ; Delay in milliseconds:
-; These are the most reliable values I was able to find.
-; ClickDelay can't go much lower than 16, and 25-100 is much more reliable.
-; Increase ClickDelay if the game doesn't register this script's clicks.
+; InputDelay can't go much lower than 16, and 25-100 is much more reliable.
+; Increase InputDelay if the game doesn't register this script's inputs.
 ; RaceDelay can't go much lower than 33000, and 35000 is much more reliable.
 ; Increase RaceDelay if this script isn't waiting long enough between rounds.
-ClickDelay = 25
+; TabDelay is how long this script will wait after focusing the game.
+; If the game is run in borderless windowed mode, this can be shorter.
+InputDelay = 50
 RaceDelay = 35000
+FocusDelay = 5000
+
+; Fun options
+RandomizeChosenHorse = 0
+RandomizeBetAmount = 0
+PlayLegit = 0
 
 ; These are measurements of the boundaries of each button at 1920x1080.
 ; Do not edit these unless you know what you're doing.
@@ -58,19 +70,16 @@ BasePlaceBetX1 = 964
 BasePlaceBetX2 = 1593
 BasePlaceBetY1 = 737
 BasePlaceBetY2 = 843
-BaseBetAgainX1 = 716
-BaseBetAgainX2 = 1204
-BaseBetAgainY1 = 944
-BaseBetAgainY2 = 1048
 
 ; Title of the game window:
 ; It will grab any window with this text in the title.
 ; Ensure windows such as its Steam properties aren't open.
-GameWindowTitle = Steal The Car Five
+WindowTitle = Steal The Car Five
 
 ; Error Text:
-ErrorInvalidHorse = Horse %ChosenHorse% doesn't exist. Valid numbers are 1 to 6.
-ErrorGameNotRunning = Unable to locate the game. Please ensure GameWindowTitle is configured correctly.
+ErrorInvalidChosenHorse = Horse %ChosenHorse% doesn't exist. Valid values are 1 to 6.
+ErrorLowBetAmount = BetAmount %BetAmount% is too low. Why did you think that would work?
+ErrorGameNotRunning = Unable to locate the game. Ensure WindowTitle is configured correctly.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; End of Config
@@ -84,49 +93,77 @@ GetCoordinate(Coordinate1, Coordinate2, Modifier) {
 XModifier := WindowWidth / BaseWindowWidth
 YModifier := WindowHeight / BaseWindowHeight
 
-SetMouseDelay, %ClickDelay%
-Hotkey, %HotkeyStart%, RaceLoop
+SetMouseDelay, %InputDelay%
+SetKeyDelay, %InputDelay%, %InputDelay%
+Hotkey, %HotkeyStart%, Main
 Hotkey, %HotkeyStop%, Stop
 Hotkey, %HotkeyDebugReload%, DebugReload
 Hotkey, %HotkeyAbort%, Abort
 
 If (ChosenHorse < 1 or ChosenHorse > 6) {
-	MsgBox, %ErrorInvalidHorse%
+	MsgBox, %ErrorInvalidChosenHorse%
+	ExitApp
+}
+If (BetAmount < 0) {
+	MsgBox, %ErrorLowBetAmount%
 	ExitApp
 }
 
 return
 
-RaceLoop:
-Continue = 1
-While (Continue) {
-	If (WinExist(GameWindowTitle)) {
-		If (not WinActive(GameWindowTitle)) {
-			WinActivate
+Main:
+If (WinExist(WindowTitle)) {
+	FormatTime, StartTime
+	LoopCount = 0
+	FocusCount = 0
+	ContinueLoop = 1
+	While (ContinueLoop) {
+		If (WinExist(WindowTitle)) {
+			If (not WinActive(WindowTitle)) {
+				WinActivate
+				Sleep, %FocusDelay%
+				FocusCount++
+			}
+			If (RandomizeChosenHorse) {
+				Random, ChosenHorse, 1, 6
+			}
+			If (RandomizeBetAmount) {
+				Random, BetAmount, 0, 27
+			}
+			SingleEventX := GetCoordinate(BaseSingleEventX1, BaseSingleEventX2, XModifier)
+			SingleEventY := GetCoordinate(BaseSingleEventY1, BaseSingleEventY2, YModifier)
+			ChosenHorseX := GetCoordinate(BaseFirstHorseX1, BaseFirstHorseX2, XModifier)
+			ChosenHorseY := GetCoordinate(BaseFirstHorseY1, BaseFirstHorseY2, YModifier) + (ChosenHorse - 1) * (BaseFirstHorseY2 - BaseFirstHorseY1)
+			IncreaseBetX := GetCoordinate(BaseIncreaseBetX1, BaseIncreaseBetX2, XModifier)
+			IncreaseBetY := GetCoordinate(BaseIncreaseBetY1, BaseIncreaseBetY2, YModifier)
+			PlaceBetX := GetCoordinate(BasePlaceBetX1, BasePlaceBetX2, XModifier)
+			PlaceBetY := GetCoordinate(BasePlaceBetY1, BasePlaceBetY2, YModifier)
+			SendEvent {Click %SingleEventX%, %SingleEventY%}{Click %ChosenHorseX%, %ChosenHorseY%}{Click %IncreaseBetX%, %IncreaseBetY%, %BetAmount%}
+			If (PlayLegit) {
+				SendEvent {Click %PlaceBetX%, %PlaceBetY%}
+			}
+			Else {
+				SendEvent {Click down}{Click %PlaceBetX%, %PlaceBetY%, 0}
+			}
+			Sleep, %RaceDelay%
+			SendEvent {Click up}{Backspace}
+			LoopCount++
 		}
-		SingleEventX := GetCoordinate(BaseSingleEventX1, BaseSingleEventX2, XModifier)
-		SingleEventY := GetCoordinate(BaseSingleEventY1, BaseSingleEventY2, YModifier)
-		ChosenHorseX := GetCoordinate(BaseFirstHorseX1, BaseFirstHorseX2, XModifier)
-		ChosenHorseY := GetCoordinate(BaseFirstHorseY1, BaseFirstHorseY2, YModifier) + (ChosenHorse - 1) * (BaseFirstHorseY2 - BaseFirstHorseY1)
-		IncreaseBetX := GetCoordinate(BaseIncreaseBetX1, BaseIncreaseBetX2, XModifier)
-		IncreaseBetY := GetCoordinate(BaseIncreaseBetY1, BaseIncreaseBetY2, YModifier)
-		PlaceBetX := GetCoordinate(BasePlaceBetX1, BasePlaceBetX2, XModifier)
-		PlaceBetY := GetCoordinate(BasePlaceBetY1, BasePlaceBetY2, YModifier)
-		BetAgainX := GetCoordinate(BaseBetAgainX1, BaseBetAgainX2, XModifier)
-		BetAgainY := GetCoordinate(BaseBetAgainY1, BaseBetAgainY2, YModifier)
-
-		SendEvent {Click %SingleEventX%, %SingleEventY%}{Click %ChosenHorseX%, %ChosenHorseY%}{Click %IncreaseBetX%, %IncreaseBetY%, down}{Click %PlaceBetX%, %PlaceBetY%, 0}
-		Sleep, %RaceDelay%
-		SendEvent {Click up}{Click %BetAgainX%, %BetAgainY%}
-	} Else {
-		MsgBox, %ErrorGameNotRunning%
-		Continue = 0
+		Else {
+			MsgBox, %ErrorGameNotRunning%
+			ContinueLoop = 0
+		}
 	}
+	FormatTime, CurrentTime
+	MsgBox, This script has been running since %StartTime% and has looped %LoopCount% time(s). It is currently %CurrentTime%. It had to focus the game %FocusCount% time(s).
+}
+Else {
+	MsgBox, %ErrorGameNotRunning%
 }
 return
 
 Stop:
-Continue = 0
+ContinueLoop = 0
 return
 
 DebugReload:
