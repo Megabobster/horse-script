@@ -19,7 +19,7 @@ HotkeyStop = Numpad1
 HotkeyDebugReload = Numpad2
 HotkeyAbort = Numpad3
 
-; Game Window Size:
+; Game Window Size override:
 ; I haven't tested it, but this script should work on resolutions other than 1920x1080.
 ; However, it might not work on aspect ratios other than 16:9.
 WindowWidth = 1920
@@ -33,6 +33,11 @@ ChosenHorse = 1
 ; 10 ($2000) or more supposedly prevents automated kicks.
 ; If PlayLegit is enabled, the range goes to 27.
 BetAmount = 10
+
+; How long should the script run?
+; It generates about $1,000,000 per hour.
+; 450 loops will run the script for about 6 hours.
+LoopLimit = 1000
 
 ; Delay in milliseconds:
 ; InputDelay can't go much lower than 16, and 25-100 is much more reliable.
@@ -70,6 +75,10 @@ BasePlaceBetX1 = 964
 BasePlaceBetX2 = 1593
 BasePlaceBetY1 = 737
 BasePlaceBetY2 = 843
+BaseBetAgainX1 = 716
+BaseBetAgainX2 = 1204
+BaseBetAgainY1 = 944
+BaseBetAgainY2 = 1048
 
 ; Title of the game window:
 ; It will grab any window with this text in the title.
@@ -138,6 +147,8 @@ If (WinExist(WindowTitle)) {
 			IncreaseBetY := GetCoordinate(BaseIncreaseBetY1, BaseIncreaseBetY2, YModifier)
 			PlaceBetX := GetCoordinate(BasePlaceBetX1, BasePlaceBetX2, XModifier)
 			PlaceBetY := GetCoordinate(BasePlaceBetY1, BasePlaceBetY2, YModifier)
+			BetAgainX := GetCoordinate(BaseBetAgainX1, BaseBetAgainX2, XModifier)
+			BetAgainY := GetCoordinate(BaseBetAgainY1, BaseBetAgainY2, YModifier)
 			SendEvent {Click %SingleEventX%, %SingleEventY%}{Click %ChosenHorseX%, %ChosenHorseY%}{Click %IncreaseBetX%, %IncreaseBetY%, %BetAmount%}
 			If (PlayLegit) {
 				SendEvent {Click %PlaceBetX%, %PlaceBetY%}
@@ -146,8 +157,11 @@ If (WinExist(WindowTitle)) {
 				SendEvent {Click down}{Click %PlaceBetX%, %PlaceBetY%, 0}
 			}
 			Sleep, %RaceDelay%
-			SendEvent {Click up}{Backspace}
+			SendEvent {Click up}{Click %BetAgainX%, %BetAgainY%}
 			LoopCount++
+			If (LoopCount = LoopLimit) {
+				ContinueLoop = 0
+			}
 		}
 		Else {
 			MsgBox, %ErrorGameNotRunning%
